@@ -60,3 +60,9 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+*.classpath
+.project
+tags.txt
+bin/
+folder/
