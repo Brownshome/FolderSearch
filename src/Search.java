@@ -23,8 +23,7 @@ public class Search {
 			counts.put(tag.trim().toUpperCase(), 0);
 		}
 
-		System.out.println(counts.size() + " tags to search for");
-		System.out.println("Reference, Path, File, Line, Tag, Paramater");
+		System.out.println("Reference,Path,File,Line,Tag,Paramater,Text");
 
 		//for every file
 		Files.walk(Paths.get(args[1])).forEach(path -> {
@@ -51,7 +50,7 @@ public class Search {
 
 								if(counts.containsKey(t)) {
 									String par = line.split("=", 2)[0].trim();
-									found(t, path, count[0], name[0], par);
+									found(t, path, count[0], name[0], par, line);
 									counts.put(t, counts.get(t) + 1);
 								}
 							}
@@ -113,11 +112,11 @@ public class Search {
 		});
 	}
 
-	private static void found(String word, Path path, int line, String pointName, String paramaterName) {
-		System.out.printf("%s, %s, %s, %d, %s, %s%n", word, path.getParent(), path.getFileName(), line + 1, pointName, paramaterName);
+	private static void found(String reference, Path path, int line, String tag, String paramater, String text) {
+		System.out.printf("%s,%s,%s,%d,%s,%s,%s%n", reference, path.getParent(), path.getFileName(), line + 1, tag, paramater, text.replace(',', ' ').trim());
 	}
 
-	private static void found(String word, Path path, int line, String string) {
-		System.out.printf("%s, %s, %s, %d, --, %s%n", word, path.getParent(), path.getFileName(), line + 1, string);
+	private static void found(String reference, Path path, int line, String text) {
+		found(reference, path, line, "--", "--", text);
 	}
 }
