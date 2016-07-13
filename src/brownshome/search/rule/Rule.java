@@ -1,5 +1,7 @@
 package brownshome.search.rule;
 
-public class Rule {
+import java.nio.file.Path;
 
+public interface Rule {
+	public String getDescription();
 }

@@ -1,0 +1,31 @@
+EXCLUDE_FILE
+.*
+
+INCLUDE_FILE
+.*.EB
+
+EXCLUDE_LINE
+.
+
+INCLUDE_LINE
+=
+
+EXCLUDE_LINE
+^{
+
+SEARCH_MATCH
+\w* *= *%search%[ .\\]
+
+EXTRA_DATA
+\w*
+0
+paramater
+
+EXTRA_DATA
+.*
+0
+line
+
+GROUP_TAG
+tag
+&N *%tag%
