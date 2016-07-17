@@ -32,8 +32,9 @@
                                     <Button maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#removeFolder" prefHeight="40.0" prefWidth="40.0" text="Remove" HBox.hgrow="ALWAYS" />
                                  </children>
                               </HBox>
+                              <Button fx:id="selectSearch" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectSearchList" text="Select Search List" />
                               <Separator prefWidth="200.0" />
-                              <ComboBox maxWidth="1.7976931348623157E308" onAction="#searchRuleSet" prefWidth="150.0" promptText="Select Rule Set" />
+                              <ComboBox fx:id="selectRuleSet" maxWidth="1.7976931348623157E308" onAction="#selectSearchRule" prefWidth="150.0" promptText="Select Rule Set" />
                               <HBox alignment="BOTTOM_CENTER" fillHeight="false" spacing="5.0" VBox.vgrow="ALWAYS">
                                  <children>
                                     <Button maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#search" prefHeight="40.0" prefWidth="40.0" text="Search" HBox.hgrow="ALWAYS" />
@@ -82,7 +83,7 @@
       </TabPane>
       <HBox spacing="10.0" VBox.vgrow="NEVER">
          <children>
-            <Label fx:id="progressLabel" text="No Search in Progress" />
+            <Label fx:id="progressLabel" text="Idle" />
             <ProgressBar fx:id="progressBar" disable="true" maxWidth="1.7976931348623157E308" progress="0.0" HBox.hgrow="ALWAYS" />
          </children>
          <padding>

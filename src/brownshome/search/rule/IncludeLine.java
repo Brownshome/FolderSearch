@@ -16,7 +16,7 @@ public class IncludeLine implements LineRule {
 	}
 
 	@Override
-	public boolean isValid(String line) {
-		return lineRegex.matcher(line).find();
+	public boolean isValid(String line, boolean isCurrentlyValid) {
+		return isCurrentlyValid || lineRegex.matcher(line).find();
 	}
 }

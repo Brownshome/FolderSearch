@@ -1,6 +1,5 @@
 package brownshome.search.rule;
 
-import java.io.File;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -17,7 +16,7 @@ public class ExcludeLine implements LineRule {
 	}
 
 	@Override
-	public boolean isValid(String line) {
-		return !lineRegex.matcher(line).find();
+	public boolean isValid(String line, boolean isCurrentlyValid) {
+		return isCurrentlyValid && !lineRegex.matcher(line).find();
 	}
 }

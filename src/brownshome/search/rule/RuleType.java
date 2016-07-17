@@ -8,9 +8,8 @@ public enum RuleType {
 	INCLUDE_FILE(IncludeFile::new, 1),
 	EXCLUDE_LINE(ExcludeLine::new, 1),
 	INCLUDE_LINE(IncludeLine::new, 1),
-	SEARCH_MATCH(SearchMatch::new, 1),
-	EXTRA_DATA(ExtraData::new, 3),
-	GROUP_TAG(GroupTag::new, 3);
+	SEARCH_MATCH(SearchMatch::new, 2),
+	GROUP_TAG(GroupTag::new, 2);
 	
 	Function<List<String>, ? extends Rule> constructor;
 	int lines;

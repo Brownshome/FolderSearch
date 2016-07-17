@@ -1,8 +1,7 @@
 package brownshome.search.rule;
 
-import java.io.File;
 import java.util.List;
-import java.util.regex.*;
+import java.util.regex.Pattern;
 
 public class IncludeFile implements FileRule {
 	Pattern fileRegex;
@@ -17,7 +16,7 @@ public class IncludeFile implements FileRule {
 	}
 
 	@Override
-	public boolean isValid(File file) {
-		return file.isFile() && fileRegex.matcher(file.getName()).find();
+	public boolean isValid(String file, boolean isCurrentlyValid) {
+		return isCurrentlyValid || fileRegex.matcher(file).find();
 	}
 }

@@ -11,21 +11,12 @@ INCLUDE_LINE
 =
 
 EXCLUDE_LINE
-^{
+^\{
 
 SEARCH_MATCH
-\w* *= *%search%[ .\\]
-
-EXTRA_DATA
-\w*
-0
-paramater
-
-EXTRA_DATA
-.*
-0
-line
+(?<line>(?<parameter>[\w()]+?) += *%search%[ .\\].*)
+line,parameter
 
 GROUP_TAG
+&N +(?<tag>\w*)
 tag
-&N *%tag%

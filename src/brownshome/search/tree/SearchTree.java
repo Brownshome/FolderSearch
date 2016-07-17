@@ -1,40 +1,90 @@
 package brownshome.search.tree;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class SearchTree {	
-	//abcdefghijklmnopqrstuvwxyz01234566789 SYMBOL
-	static final int NUMBER_OF_CHARS = 'Z' - 'A' + '9' - '0' + 3;
-	static final int SYMBOL = NUMBER_OF_CHARS - 1;
-	
-	static int translate(int c) {
-		c = Character.toUpperCase(c);
+public class SearchTree {
+	public static class Match {
+		public final String tag;
+		public final int from;
+		public final int to;
 		
-		if(Character.isDigit(c))
-			return c - '0' + 'Z' - 'A' + 1;
-		
-		if(c <= 'Z' && c >= 'A')
-			return c - 'A';
-		
-		return SYMBOL;
+		public Match(int from, int to, String tag) {
+			this.from = from;
+			this.to = to;
+			this.tag = tag;
+		}
 	}
 	
-	SearchTree[] options = new SearchTree[NUMBER_OF_CHARS];
+	static SearchTree rootTree;
+	
+	public static void createTree(List<String> readAllLines) {
+		rootTree = new SearchTree(readAllLines);
+	}
+	
+	public static List<Match> getMatches(String line) {
+		List<SearchTree> subTrees = new ArrayList<>();
+		List<Match> matches = new ArrayList<>();
+		
+		for(int ci = 0; ci < line.length(); ci++) {
+			int c = line.codePointAt(ci);
+			
+			//take every subtree and traverse one step lower
+			for(int i = 0; i < subTrees.size(); i++) {
+				SearchTree t = subTrees.get(i);
+
+				if(t != null) {
+					subTrees.set(i, t = t.getTree(c));
+					if(t != null) {
+						if(t.getWord() != null) {
+							matches.add(new Match(ci - t.getWord().length() + 1, ci + 1, t.getWord()));
+						}
+					}
+				}
+			}
+
+			//add new subtrees from root tree
+			SearchTree subTree = rootTree.getTree(c);
+			if(subTree != null) {
+				int index = -1;
+				for(int i = 0; i < subTrees.size(); i++) {
+					if(subTrees.get(i) == null)
+						index = i;
+				}
+
+				//try to conserver space by reusing indices
+				if(index != -1) {
+					subTrees.set(index, subTree);
+				} else {
+					subTrees.add(subTree);
+				}
+
+				if(subTree.getWord() != null) {
+					matches.add(new Match(ci - subTree.getWord().length() + 1, ci + 1, subTree.getWord()));
+				}
+			}
+		}
+		
+		return matches;
+	}
+	
+	Map<Integer, SearchTree> options = new HashMap<>();
 	String word;
 	
 	void addTag(String tag, int layer) {
-		int index = translate(tag.codePointAt(layer));
-		SearchTree currentTree = options[index];
+		int index = tag.codePointAt(layer);
+		SearchTree currentTree = options.get(index);
 		
 		//add new subtree
 		if(currentTree == null) 
-			options[index] = new SearchTree();
+			options.put(index, currentTree = new SearchTree());
 		
 		//populate tree with word or new subtree
 		if(tag.length() > layer + 1)
-			options[index].addTag(tag, layer + 1);
+			currentTree.addTag(tag, layer + 1);
 		else
-			options[index].setWord(tag);
+			currentTree.setWord(tag);
 	}
 	
 	@Override
@@ -61,7 +111,7 @@ public class SearchTree {
 		
 		if(getWord() != null) l.add(getWord());
 		
-		for(SearchTree tree : options) {
+		for(SearchTree tree : options.values()) {
 			if(tree != null)
 				l.addAll(tree.getTags());
 		}
@@ -85,6 +135,6 @@ public class SearchTree {
 	}
 	
 	public SearchTree getTree(int c) {
-		return options[translate(c)];
+		return options.get(c);
 	}
 }
