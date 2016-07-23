@@ -5,11 +5,19 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.binding.BooleanExpression;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,17 +27,20 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
 import brownshome.search.rule.Rule;
@@ -56,8 +67,14 @@ public class GUIController {
 	@FXML ListView<Path> fileList;
 	@FXML TextField regexBox;
 	@FXML Button selectSearch;
+	@FXML Button searchButton;
+	@FXML Button exportButton;
 	
-	Path tagList;
+	ObjectProperty<Path> tagList = new SimpleObjectProperty<>();
+	BooleanBinding isSeachButtonValid;
+	BooleanProperty isSearchDone = new SimpleBooleanProperty(false);
+	BooleanProperty currentlySearching = new SimpleBooleanProperty(false);
+	BooleanProperty treeBeingMade = new SimpleBooleanProperty(false);
 	
 	public static void initializeUI(Stage primaryStage) {
 		INSTANCE = new GUIController(primaryStage);
@@ -67,7 +84,10 @@ public class GUIController {
 		this.primaryStage = primaryStage;
 		
 		Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-			errorImpl("Unhandled " + exception.getClass().getSimpleName() + " : " + exception.getMessage() + "\nSee the console for more details.");
+			Throwable root = exception;
+			while(root.getClass() != RuntimeException.class && root.getCause() != null) root = root.getCause();
+			
+			errorImpl("Unhandled " + root.getClass().getSimpleName() + " : " + root.getMessage() + "\nSee the console for more details.");
 			exception.printStackTrace();
 		});
 		
@@ -92,9 +112,19 @@ public class GUIController {
 		selectRuleSet.getSelectionModel().selectedItemProperty().addListener(this::updateTable);
 		fileList.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		
-		refreshRuleSet();
+		BooleanExpression ruleSetSelected = selectRuleSet.getSelectionModel().selectedItemProperty().isNotNull();
+		BooleanExpression listHasFilesInIt = new SimpleListProperty<Path>(fileList.getItems()).emptyProperty().not();
+		BooleanExpression tagListSelected = tagList.isNotNull();
+		
+		isSeachButtonValid = ruleSetSelected.and(listHasFilesInIt.and(tagListSelected));
+		searchButton.disableProperty().bind(isSeachButtonValid.not().or(currentlySearching).or(treeBeingMade));
+		exportButton.disableProperty().bind(isSearchDone.not());
+		selectSearch.disableProperty().bind(currentlySearching);
+		selectRuleSet.disableProperty().bind(currentlySearching);
 		
 		primaryStage.show();
+		
+		Platform.runLater(this::refreshRuleSet);
 	}
 	
 	void errorImpl(String message) {
@@ -119,12 +149,24 @@ public class GUIController {
 		fileList.getItems().add(folder.toPath());
 	}
 	
+	@FXML void displayHelp() {
+		ButtonType wikiButton = new ButtonType("Visit Wiki");
+		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, new ButtonType("Visit Wiki"));
+		alert.setTitle("About Folder Search 2.0");
+		alert.setHeaderText(null);
+		alert.show();
+		
+		if(alert.getResult() == wikiButton) {
+			//Desktop.getDesktop().browse(URI.create("http://")); TODO
+		}
+	}
+	
 	@FXML void removeFolder() {
 		ObservableList<Path> list = fileList.getSelectionModel().getSelectedItems();
 		fileList.getItems().removeAll(list);
 	}
 	
-	void refreshRuleSet() {
+	@FXML void refreshRuleSet() {
 		if(!Files.isDirectory(RULE_PATH)) {
 			try {
 				Files.createDirectory(RULE_PATH);
@@ -143,16 +185,27 @@ public class GUIController {
 	
 	@FXML void selectSearchList() {
 		FileChooser fileChooser = new FileChooser();
-		tagList = fileChooser.showOpenDialog(primaryStage).toPath();
+		fileChooser.setTitle("Select the file to search with");
+		
+		File p = fileChooser.showOpenDialog(primaryStage);
+		if(p == null)
+			return;
+		
+		tagList.setValue(p.toPath());
 	
 		progressBar.setDisable(false);
 		progressBar.setProgress(-1);
+		
+		resultTable.getItems().clear();
+		isSearchDone.set(false);
+		
 		progressLabel.setText("Generating Search Tree");
-		selectSearch.setText(tagList.toString());
+		selectSearch.setText(tagList.get().toString());
+		treeBeingMade.set(true);
 		
 		Thread treeCreationThread = new Thread(() -> {
 			try {
-				SearchTree.createTree(Files.readAllLines(tagList));
+				SearchTree.createTree(Files.readAllLines(tagList.get()));
 				
 				Platform.runLater(GUIController.INSTANCE::finishedMakingTree);
 			} catch (IOException e) {
@@ -168,6 +221,7 @@ public class GUIController {
 		progressBar.setDisable(true);
 		progressBar.setProgress(0);
 		progressLabel.setText("Idle");
+		treeBeingMade.set(false);
 	}
 	
 	@FXML void editRuleSet() {
@@ -181,6 +235,8 @@ public class GUIController {
 		progressBar.setDisable(false);
 		progressBar.setProgress(0);
 		progressLabel.setText("Searching...");
+		isSearchDone.set(false);
+		currentlySearching.set(true);
 		
 		Thread thread = new Thread(() -> {
 			List<ResultSet> results = ruleSet.searchPaths(paths);
@@ -190,6 +246,8 @@ public class GUIController {
 				progressBar.setDisable(true);
 				progressBar.setProgress(0);
 				progressLabel.setText("Idle");
+				isSearchDone.set(true);
+				currentlySearching.set(false);
 			});
 		}, "SEARCH THREAD");
 		
@@ -202,13 +260,49 @@ public class GUIController {
 	}
 
 	void updateTable(ObservableValue<? extends RuleSet> observable, RuleSet old, RuleSet current) {
+		resultTable.getItems().clear();
+		isSearchDone.set(false);
+		
 		RuleSet currentSet = selectRuleSet.getSelectionModel().getSelectedItem();
 		
 		resultTable.getColumns().setAll(currentSet.getColumns());
 	}
 	
 	@FXML void export() {
+		FileChooser fileChooser = new FileChooser();
+		fileChooser.setTitle("Select the file to export to");
+		fileChooser.getExtensionFilters().setAll(new ExtensionFilter("Csv", "*.csv"));
+		Path output = fileChooser.showSaveDialog(primaryStage).toPath();
 		
+		if(output == null)
+			return;
+		
+		List<String> catagories = selectRuleSet.getSelectionModel().getSelectedItem().catagories;
+		String header = "";	
+		for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
+			header += catagories.get(Integer.parseInt(c.getId())) + ",";
+		}
+		header = header.substring(0, header.length() - 1);
+		
+		Iterable<String> iterable = Stream.concat(
+			Stream.of(header), 
+				
+			resultTable.getItems().stream().map(r -> {
+				String s = "";
+			
+				for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
+					s += r.data[Integer.parseInt(c.getId())] + ",";
+				}
+			
+				return s.substring(0, s.length() - 1);
+			})
+		)::iterator;
+		
+		try {
+			Files.write(output, iterable, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to write to file");
+		}
 	}
 
 	public void setProgress(double p) {

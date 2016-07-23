@@ -9,6 +9,20 @@
 
 <VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
    <children>
+      <MenuBar>
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+                  <MenuItem mnemonicParsing="false" onAction="#refreshRuleSet" text="Refresh Rules" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" onAction="#displayHelp" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
       <TabPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="600.0" prefWidth="1000.0" side="LEFT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
         <tabs>
           <Tab text="Search">
@@ -34,11 +48,11 @@
                               </HBox>
                               <Button fx:id="selectSearch" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectSearchList" text="Select Search List" />
                               <Separator prefWidth="200.0" />
-                              <ComboBox fx:id="selectRuleSet" maxWidth="1.7976931348623157E308" onAction="#selectSearchRule" prefWidth="150.0" promptText="Select Rule Set" />
+                              <ComboBox fx:id="selectRuleSet" maxWidth="1.7976931348623157E308" prefWidth="150.0" promptText="Select Rule Set" />
                               <HBox alignment="BOTTOM_CENTER" fillHeight="false" spacing="5.0" VBox.vgrow="ALWAYS">
                                  <children>
-                                    <Button maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#search" prefHeight="40.0" prefWidth="40.0" text="Search" HBox.hgrow="ALWAYS" />
-                                    <Button maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#export" prefHeight="40.0" prefWidth="40.0" text="Export" HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="searchButton" maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#search" prefHeight="40.0" prefWidth="40.0" text="Search" HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="exportButton" maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#export" prefHeight="40.0" prefWidth="40.0" text="Export" HBox.hgrow="ALWAYS" />
                                  </children>
                               </HBox>
                            </children>
@@ -47,7 +61,7 @@
                   </HBox>
                </content>
           </Tab>
-          <Tab text="Rules">
+          <Tab disable="true" text="Rules">
                <content>
                   <HBox prefHeight="100.0" prefWidth="200.0">
                      <children>

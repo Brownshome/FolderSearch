@@ -25,10 +25,10 @@ import brownshome.search.ui.GUIController;
 // OTHER - only on if file and line is active
 
 public class RuleSet {
-	List<String> catagories;
+	public List<String> catagories;
 
 	public class ResultSet {
-		String[] data;
+		public String[] data;
 
 		public ResultSet() {
 			data = new String[catagories.size()];
@@ -73,17 +73,33 @@ public class RuleSet {
 		catagories.add("Match");
 
 		for(int i = 0; i < lines.size(); i++) {
-			RuleType type = RuleType.valueOf(lines.get(i));
-			List<String> sublist = lines.subList(++i, i = i + type.lines);
-			Rule rule = type.constructor.apply(sublist);
-			rules.add(rule);
+			RuleType type = null;
+			List<String> subList = null;
+			try {
+				type = RuleType.valueOf(lines.get(i));
+				subList = lines.subList(++i, i = i + type.lines);
+				Rule rule = type.constructor.apply(subList);
+				rules.add(rule);
 
-			if(rule instanceof DataRule) {
-				catagories.addAll(((DataRule) rule).getDataHeadings());
-			}
-
-			if(rule instanceof GroupTag) {
-				groups.add((GroupTag) rule);
+				if(rule instanceof DataRule) {
+					catagories.addAll(((DataRule) rule).getDataHeadings());
+				}
+			
+				if(rule instanceof GroupTag) {
+					groups.add((GroupTag) rule);
+				}
+			} catch(IllegalArgumentException iae) {
+				if(type == null)
+					throw new RuntimeException("Invalid rule type found (" + path.getFileName() + ":" + i + ")");
+				else
+					throw new RuntimeException("Error reading rule file (" + path.getFileName() + ":" + (i - type.lines - 1) + "-" + i + ")", iae);
+			} catch(IndexOutOfBoundsException ioobe) {
+				if(subList == null)
+					throw new RuntimeException("Reached the end of file while reading (" + path.getFileName() + ":end)");
+				else
+					throw new RuntimeException("Error reading rule file (" + path.getFileName() + ":" + (i - type.lines - 1) + "-" + i + ")", ioobe);
+			} catch(Exception e) {
+				throw new RuntimeException("Error reading rule file (" + path.getFileName() + ":" + (i - type.lines - 1) + "-" + i + ")", e);
 			}
 		}
 	}
@@ -195,10 +211,12 @@ public class RuleSet {
 			if(catagories.get(index).equals("Line No")) {
 				TableColumn<ResultSet, Integer> column = new TableColumn<>(catagories.get(index));
 				column.setCellValueFactory(cellData -> new SimpleObjectProperty<>(Integer.parseInt(cellData.getValue().data[index])));
+				column.setId(String.valueOf(index));
 				return column;
 			} else {
 				TableColumn<ResultSet, String> column = new TableColumn<>(catagories.get(index));
 				column.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().data[index]));
+				column.setId(String.valueOf(index));
 				return column;
 			}
 		}).collect(Collectors.toList());
