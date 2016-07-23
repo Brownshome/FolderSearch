@@ -1,7 +1,9 @@
 package brownshome.search.ui;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +38,7 @@ import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.DirectoryChooser;
@@ -107,6 +110,8 @@ public class GUIController {
 				refreshRuleSet();
 		});
 		
+		primaryStage.getIcons().add(new Image(GUIController.class.getResourceAsStream("icon.png")));
+		
 		editRuleSet.setItems(sharedRuleList);
 		selectRuleSet.setItems(sharedRuleList);
 		selectRuleSet.getSelectionModel().selectedItemProperty().addListener(this::updateTable);
@@ -134,6 +139,7 @@ public class GUIController {
 		}
 		
 		Alert error = new Alert(AlertType.ERROR, message);
+		error.initOwner(primaryStage);
 		error.setHeaderText(null);
 		error.show();
 	}
@@ -146,18 +152,26 @@ public class GUIController {
 		DirectoryChooser dirChooser = new DirectoryChooser();
 		dirChooser.setTitle("Choose a folder to add");
 		File folder = dirChooser.showDialog(primaryStage);
+		
+		if(folder == null)
+			return;
+		
 		fileList.getItems().add(folder.toPath());
 	}
 	
 	@FXML void displayHelp() {
 		ButtonType wikiButton = new ButtonType("Visit Wiki");
-		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, new ButtonType("Visit Wiki"));
+		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, wikiButton);
 		alert.setTitle("About Folder Search 2.0");
 		alert.setHeaderText(null);
-		alert.show();
+		alert.showAndWait();
 		
 		if(alert.getResult() == wikiButton) {
-			//Desktop.getDesktop().browse(URI.create("http://")); TODO
+			try {
+				Desktop.getDesktop().browse(URI.create("https://github.com/Brownshome/FolderSearch/wiki"));
+			} catch (IOException e) {
+				throw new RuntimeException("Unable to open browser to https://github.com/Brownshome/FolderSearch/wiki", e);
+			}
 		}
 	}
 	
