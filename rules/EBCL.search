@@ -1,0 +1,35 @@
+EXCLUDE_FILE
+.
+
+INCLUDE_FILE
+\.EB
+
+GROUP_TAG
+^&N +(?<tag>\w*)
+tag
+
+EXCLUDE_LINE
+.
+
+INCLUDE_LINE
+=
+
+EXCLUDE_LINE
+^\{
+
+SEARCH_MATCH
+(?<line>(?<parameter>[\w()]+?) += *%search%(\W|$).*)
+line,parameter
+
+EXCLUDE_FILE
+.
+
+INCLUDE_FILE
+\.CL
+
+EXCLUDE_LINE
+^ *--
+
+SEARCH_MATCH
+(?<line>.*?(\W|^)%search%(\W|$).*)
+line

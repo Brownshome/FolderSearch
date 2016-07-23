@@ -82,7 +82,10 @@ public class RuleSet {
 				rules.add(rule);
 
 				if(rule instanceof DataRule) {
-					catagories.addAll(((DataRule) rule).getDataHeadings());
+					for(String s : ((DataRule) rule).getDataHeadings()) {
+						if(!catagories.contains(s))
+							catagories.add(s);
+					}
 				}
 			
 				if(rule instanceof GroupTag) {
@@ -143,7 +146,7 @@ public class RuleSet {
 
 						int l = lineNo++;
 						result.forEach((ResultSet r) -> {
-							r.add("File", file.getFileName().toString());
+							r.add("File", file.toString());
 							r.add("Line No", String.valueOf(l));
 						});
 
@@ -186,18 +189,22 @@ public class RuleSet {
 		for(Rule rule : filteredSet) {
 			if(rule instanceof LineRule) {
 				isCurrentlyValid = ((LineRule) rule).isValid(line, isCurrentlyValid);
-			} else if(rule instanceof GroupTag) {
-				((GroupTag) rule).processLine(line);
-			} else if(rule instanceof SearchMatch) {
-				for(Match match : SearchTree.getMatches(line)) {
-					ResultSet result = new ResultSet();
-					result.add("Match", match.tag);
+			} else {
+				if(!isCurrentlyValid) continue;
+				
+				if(rule instanceof GroupTag) {
+					((GroupTag) rule).processLine(line);
+				} else if(rule instanceof SearchMatch) {
+					for(Match match : SearchTree.getMatches(line)) {
+						ResultSet result = new ResultSet();
+						result.add("Match", match.tag);
 
-					if(((SearchMatch) rule).match(line, match, result)) {
-						for(GroupTag tag : groups)
-							tag.fillResultSet(result);
+						if(((SearchMatch) rule).match(line, match, result)) {
+							for(GroupTag tag : groups)
+								tag.fillResultSet(result);
 
-						results.add(result);
+							results.add(result);
+						}
 					}
 				}
 			}

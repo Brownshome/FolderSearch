@@ -279,7 +279,10 @@ public class GUIController {
 		
 		RuleSet currentSet = selectRuleSet.getSelectionModel().getSelectedItem();
 		
-		resultTable.getColumns().setAll(currentSet.getColumns());
+		if(currentSet == null)
+			resultTable.getItems().clear();
+		else
+			resultTable.getColumns().setAll(currentSet.getColumns());
 	}
 	
 	@FXML void export() {
