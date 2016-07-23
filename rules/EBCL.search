@@ -18,7 +18,7 @@ EXCLUDE_LINE
 ^\{
 
 SEARCH_MATCH
-(?<line>(?<parameter>[\w()]+?) += *%search%(\W|$).*)
+(?<line>^.*?(?<parameter>[\w()-.]+) += *%search%(\W|$).*$)
 line,parameter
 
 EXCLUDE_FILE
@@ -31,5 +31,5 @@ EXCLUDE_LINE
 ^ *--
 
 SEARCH_MATCH
-(?<line>.*?(\W|^)%search%(\W|$).*)
+(?<line>^.*?(\W|^)%search%(\W|$).*$)
 line
