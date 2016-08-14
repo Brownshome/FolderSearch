@@ -170,12 +170,16 @@ public class RuleSet {
 		for(Iterator<Rule> it = filteredSet.iterator(); it.hasNext();) {
 			Rule rule = it.next();
 
-			if(rule instanceof FileRule) {
-				isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
-				it.remove();
+			if(rule instanceof GroupTag) {
+				((GroupTag) rule).reset();
 			} else {
-				if(!isCurrentlyValid)
+				if(rule instanceof FileRule) {
+					isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
 					it.remove();
+				} else {
+					if(!isCurrentlyValid)
+						it.remove();
+				}
 			}
 		}
 

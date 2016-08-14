@@ -94,7 +94,7 @@ public class GUIController {
 			exception.printStackTrace();
 		});
 		
-		primaryStage.setTitle("Search Tool 2.0");
+		primaryStage.setTitle("Search Tool 2.1");
 		
 		FXMLLoader loader = new FXMLLoader(GUIController.class.getResource("GUI.fxml"));
 		loader.setController(this);
@@ -148,13 +148,22 @@ public class GUIController {
 		assert false : "Not implemented";
 	}
 	
+	Path initialDir;
 	@FXML void addFolder() {
 		DirectoryChooser dirChooser = new DirectoryChooser();
+		
+		if(initialDir != null)
+			dirChooser.setInitialDirectory(initialDir.toFile());
+		
 		dirChooser.setTitle("Choose a folder to add");
 		File folder = dirChooser.showDialog(primaryStage);
 		
 		if(folder == null)
 			return;
+		
+		initialDir = folder.toPath().getParent();
+		if(initialDir == null)
+			initialDir = folder.toPath();
 		
 		fileList.getItems().add(folder.toPath());
 	}
@@ -162,7 +171,7 @@ public class GUIController {
 	@FXML void displayHelp() {
 		ButtonType wikiButton = new ButtonType("Visit Wiki");
 		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, wikiButton);
-		alert.setTitle("About Folder Search 2.0");
+		alert.setTitle("About Folder Search 2.1");
 		alert.setHeaderText(null);
 		alert.showAndWait();
 		
@@ -197,13 +206,21 @@ public class GUIController {
 		}
 	}
 	
+	Path initialDirSearchList;
 	@FXML void selectSearchList() {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Select the file to search with");
 		
+		if(initialDirSearchList != null)
+			fileChooser.setInitialDirectory(initialDirSearchList.toFile());
+		
 		File p = fileChooser.showOpenDialog(primaryStage);
 		if(p == null)
 			return;
+		
+		initialDirSearchList = p.toPath().getParent();
+		if(initialDirSearchList == null) 
+			initialDirSearchList = p.toPath();
 		
 		tagList.setValue(p.toPath());
 	
@@ -285,19 +302,27 @@ public class GUIController {
 			resultTable.getColumns().setAll(currentSet.getColumns());
 	}
 	
+	Path initialExportDir;
 	@FXML void export() {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Select the file to export to");
 		fileChooser.getExtensionFilters().setAll(new ExtensionFilter("Csv", "*.csv"));
+		
+		if(initialExportDir != null)
+			fileChooser.setInitialDirectory(initialExportDir.toFile());
+		
 		Path output = fileChooser.showSaveDialog(primaryStage).toPath();
 		
 		if(output == null)
 			return;
 		
+		initialExportDir = output.getParent();
+		if(initialExportDir == null) initialExportDir = output;
+		
 		List<String> catagories = selectRuleSet.getSelectionModel().getSelectedItem().catagories;
 		String header = "";	
 		for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
-			header += catagories.get(Integer.parseInt(c.getId())) + ",";
+			header += "\"" + catagories.get(Integer.parseInt(c.getId())) + "\",";
 		}
 		header = header.substring(0, header.length() - 1);
 		
@@ -308,7 +333,7 @@ public class GUIController {
 				String s = "";
 			
 				for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
-					s += r.data[Integer.parseInt(c.getId())] + ",";
+					s += "\"" + r.data[Integer.parseInt(c.getId())] + "\",";
 				}
 			
 				return s.substring(0, s.length() - 1);
