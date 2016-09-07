@@ -134,6 +134,9 @@ public class RuleSet {
 		long done = 0;
 		for(Path file : paths) {
 			try {
+				if(Thread.interrupted())
+					return null;
+				
 				done += Files.size(file);
 				
 				double percent = ((double) done) / size[0];

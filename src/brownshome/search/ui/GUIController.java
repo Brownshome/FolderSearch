@@ -13,8 +13,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.BooleanExpression;
+import javafx.beans.binding.StringExpression;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -23,6 +25,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -78,6 +82,7 @@ public class GUIController {
 	BooleanProperty isSearchDone = new SimpleBooleanProperty(false);
 	BooleanProperty currentlySearching = new SimpleBooleanProperty(false);
 	BooleanProperty treeBeingMade = new SimpleBooleanProperty(false);
+	BooleanBinding buttonIsCancel;
 	
 	public static void initializeUI(Stage primaryStage) {
 		INSTANCE = new GUIController(primaryStage);
@@ -122,7 +127,22 @@ public class GUIController {
 		BooleanExpression tagListSelected = tagList.isNotNull();
 		
 		isSeachButtonValid = ruleSetSelected.and(listHasFilesInIt.and(tagListSelected));
-		searchButton.disableProperty().bind(isSeachButtonValid.not().or(currentlySearching).or(treeBeingMade));
+		
+
+		buttonIsCancel = currentlySearching.or(treeBeingMade);
+		StringExpression searchButtonText = Bindings.createStringBinding(
+				() -> buttonIsCancel.get() ? "Cancel" : "Search", 
+				buttonIsCancel
+			);
+		
+		searchButton.disableProperty().bind(isSeachButtonValid.not().and(currentlySearching.not()).and(treeBeingMade.not()));
+		searchButton.textProperty().bind(searchButtonText);
+		
+		EventHandler<ActionEvent> search = ae -> search();
+		EventHandler<ActionEvent> cancel = ae -> cancel();
+		
+		searchButton.onActionProperty().bind(Bindings.createObjectBinding(() -> buttonIsCancel.get() ? cancel : search, buttonIsCancel));
+		
 		exportButton.disableProperty().bind(isSearchDone.not());
 		selectSearch.disableProperty().bind(currentlySearching);
 		selectRuleSet.disableProperty().bind(currentlySearching);
@@ -207,6 +227,7 @@ public class GUIController {
 	}
 	
 	Path initialDirSearchList;
+	Thread treeCreationThread;
 	@FXML void selectSearchList() {
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Select the file to search with");
@@ -234,11 +255,12 @@ public class GUIController {
 		selectSearch.setText(tagList.get().toString());
 		treeBeingMade.set(true);
 		
-		Thread treeCreationThread = new Thread(() -> {
+		treeCreationThread = new Thread(() -> {
 			try {
-				SearchTree.createTree(Files.readAllLines(tagList.get()));
+				SearchTree tree = SearchTree.createTree(Files.readAllLines(tagList.get()));
 				
-				Platform.runLater(GUIController.INSTANCE::finishedMakingTree);
+				Thread t = Thread.currentThread();
+				Platform.runLater(() -> finishedMakingTree(t, tree));
 			} catch (IOException e) {
 				throw new RuntimeException("Error reading tag list", e);
 			}
@@ -248,7 +270,12 @@ public class GUIController {
 		treeCreationThread.start();
 	}
 	
-	void finishedMakingTree() {
+	void finishedMakingTree(Thread t, SearchTree tree) {
+		if(t != treeCreationThread) {
+			return; //we aborted, just die
+		}
+		
+		SearchTree.rootTree = tree;
 		progressBar.setDisable(true);
 		progressBar.setProgress(0);
 		progressLabel.setText("Idle");
@@ -259,7 +286,24 @@ public class GUIController {
 		
 	}
 	
-	@FXML void search() {
+	void cancel() {
+		if(currentlySearching.get()) {
+			searchThread.interrupt();
+			searchThread = null;
+			finishSearch(null, null);
+		}
+		
+		if(treeBeingMade.get()) {
+			treeCreationThread.interrupt();
+			treeCreationThread = null;
+			finishedMakingTree(null, null);
+			tagList.setValue(null);
+			selectSearch.setText("Select Search List");
+		}
+	}
+	
+	Thread searchThread;
+	void search() {
 		RuleSet ruleSet = selectRuleSet.getSelectionModel().getSelectedItem();
 		Collection<Path> paths = fileList.getItems();
 		
@@ -269,25 +313,30 @@ public class GUIController {
 		isSearchDone.set(false);
 		currentlySearching.set(true);
 		
-		Thread thread = new Thread(() -> {
+		searchThread = new Thread(() -> {
 			List<ResultSet> results = ruleSet.searchPaths(paths);
-			
+		
+			Thread t = Thread.currentThread();
 			Platform.runLater(() -> {
-				finishSearch(results);
-				progressBar.setDisable(true);
-				progressBar.setProgress(0);
-				progressLabel.setText("Idle");
-				isSearchDone.set(true);
-				currentlySearching.set(false);
+				finishSearch(t, results);
 			});
 		}, "SEARCH THREAD");
 		
-		thread.setDaemon(true);
-		thread.start();
+		searchThread.setDaemon(true);
+		searchThread.start();
 	}
 	
-	void finishSearch(List<ResultSet> results) {
-		resultTable.getItems().setAll(results);
+	void finishSearch(Thread t, List<ResultSet> results) {
+		if(t != searchThread)
+			return;
+		
+		if(results != null) resultTable.getItems().setAll(results);
+		
+		progressBar.setDisable(true);
+		progressBar.setProgress(0);
+		progressLabel.setText("Idle");
+		isSearchDone.set(true);
+		currentlySearching.set(false);
 	}
 
 	void updateTable(ObservableValue<? extends RuleSet> observable, RuleSet old, RuleSet current) {

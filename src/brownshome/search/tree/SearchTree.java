@@ -17,10 +17,10 @@ public class SearchTree {
 		}
 	}
 	
-	static SearchTree rootTree;
+	public static SearchTree rootTree;
 	
-	public static void createTree(List<String> readAllLines) {
-		rootTree = new SearchTree(readAllLines);
+	public static SearchTree createTree(List<String> readAllLines) {
+		return new SearchTree(readAllLines);
 	}
 	
 	public static List<Match> getMatches(String line) {
@@ -126,8 +126,12 @@ public class SearchTree {
 	SearchTree() {}
 	
 	public SearchTree(List<String> input) {
-		for(String tag : input)
+		for(String tag : input) {
+			if(Thread.interrupted()) 
+				return;
+			
 			addTag(tag.trim(), 0);
+		}
 	}
 	
 	public String getWord() {
