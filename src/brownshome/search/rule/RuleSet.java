@@ -157,7 +157,7 @@ public class RuleSet {
 					}
 				}
 			} catch(IOException e) {
-				Platform.runLater(() -> GUIController.INSTANCE.errorImpl("Malformed input file " + file.toString() + ": " + e.toString()));
+				System.out.println("Malformed input file " + file.toString() + ": " + e.toString());
 			}
 		}
 
