@@ -8,12 +8,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import brownshome.search.FileUtils;
+
 public class Search {
 	public static void main(String[] args) throws IOException {
 		if(args.length != 2)
 			throw new IllegalArgumentException("Usage [tags] [searchdir]");
 
-		List<String> tags = Files.readAllLines(Paths.get(args[0]));
+		List<String> tags = FileUtils.readAllLines(Paths.get(args[0]));
 		
 		//Home rolled suffix tree for the CL lookup.
 		SearchTree tree = new SearchTree(tags);

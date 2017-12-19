@@ -49,7 +49,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
-
+import brownshome.search.FileUtils;
 import brownshome.search.rule.Rule;
 import brownshome.search.rule.RuleSet;
 import brownshome.search.rule.RuleSet.ResultSet;
@@ -152,7 +152,7 @@ public class GUIController {
 		Platform.runLater(this::refreshRuleSet);
 	}
 	
-	void errorImpl(String message) {
+	public void errorImpl(String message) {
 		if(!Platform.isFxApplicationThread()) {
 			Platform.runLater(() -> errorImpl(message));
 			return;
@@ -257,7 +257,7 @@ public class GUIController {
 		
 		treeCreationThread = new Thread(() -> {
 			try {
-				SearchTree tree = SearchTree.createTree(Files.readAllLines(tagList.get()));
+				SearchTree tree = SearchTree.createTree(FileUtils.readAllLines(tagList.get()));
 				
 				Thread t = Thread.currentThread();
 				Platform.runLater(() -> finishedMakingTree(t, tree));

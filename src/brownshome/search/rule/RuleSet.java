@@ -15,7 +15,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.control.TableColumn;
-
+import brownshome.search.FileUtils;
 import brownshome.search.tree.SearchTree;
 import brownshome.search.tree.SearchTree.Match;
 import brownshome.search.ui.GUIController;
@@ -60,7 +60,7 @@ public class RuleSet {
 
 		List<String> lines;
 		try {
-			lines = Files.readAllLines(path);
+			lines = FileUtils.readAllLines(path);
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to read rule file " + path, e);
 		}
@@ -144,7 +144,7 @@ public class RuleSet {
 				
 				if(setFileName(file.getFileName().toString())) {
 					int lineNo = 1;
-					for(String line : Files.readAllLines(file)) {
+					for(String line : FileUtils.readAllLines(file)) {
 						List<ResultSet> result = processLine(line);
 
 						int l = lineNo++;
@@ -157,7 +157,7 @@ public class RuleSet {
 					}
 				}
 			} catch(IOException e) {
-				//malformed UTF-8 expression
+				Platform.runLater(() -> GUIController.INSTANCE.errorImpl("Malformed input file " + file.toString() + ": " + e.toString()));
 			}
 		}
 
