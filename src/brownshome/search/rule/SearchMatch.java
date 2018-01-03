@@ -41,7 +41,9 @@ public class SearchMatch implements Rule, DataRule {
 			return false;
 		
 		for(String namedGroup : namedGroups) {
-			result.add(namedGroup, matcher.group(namedGroup).replace(SENTINEL, match.tag));
+			String group = matcher.group(namedGroup);
+			
+			result.add(namedGroup, group == null ? "No Data" : group.replace(SENTINEL, match.tag));
 		}
 		
 		return true;

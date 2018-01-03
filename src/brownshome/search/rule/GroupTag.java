@@ -53,8 +53,12 @@ public class GroupTag implements Rule, DataRule {
 				if(currentGroup.get(i) != null) {
 					result.add(groupCategories.get(i), currentGroup.get(i));
 				} else {
-					result.add(groupCategories.get(i), "No Match");
+					result.add(groupCategories.get(i), "No Data");
 				}
+			}
+		} else {
+			for(String s : groupCategories) {
+				result.add(s, "no Data");
 			}
 		}
 	}
