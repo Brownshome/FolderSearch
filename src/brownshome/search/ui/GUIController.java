@@ -99,7 +99,7 @@ public class GUIController {
 			exception.printStackTrace();
 		});
 		
-		primaryStage.setTitle("Search Tool 2.3");
+		primaryStage.setTitle("Search Tool 2.4");
 		
 		FXMLLoader loader = new FXMLLoader(GUIController.class.getResource("GUI.fxml"));
 		loader.setController(this);
@@ -191,7 +191,7 @@ public class GUIController {
 	@FXML void displayHelp() {
 		ButtonType wikiButton = new ButtonType("Visit Wiki");
 		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, wikiButton);
-		alert.setTitle("About Folder Search 2.3");
+		alert.setTitle("About Folder Search 2.4");
 		alert.setHeaderText(null);
 		alert.showAndWait();
 		

@@ -46,6 +46,7 @@ public class RuleSet {
 
 	List<Rule> rules = new ArrayList<>();
 	List<Rule> filteredSet;
+	boolean isSwitchedOn = true;
 
 	List<GroupTag> groups = new ArrayList<>();
 	String name;
@@ -173,16 +174,17 @@ public class RuleSet {
 		for(Iterator<Rule> it = filteredSet.iterator(); it.hasNext();) {
 			Rule rule = it.next();
 
-			if(rule instanceof GroupTag) {
+			if(rule instanceof StartState) {
+				isSwitchedOn = ((StartState) rule).state;
+				it.remove();
+			} else if(rule instanceof GroupTag) {
 				((GroupTag) rule).reset();
+			} else if(rule instanceof FileRule) {
+				isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
+				it.remove();
 			} else {
-				if(rule instanceof FileRule) {
-					isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
+				if(!isCurrentlyValid)
 					it.remove();
-				} else {
-					if(!isCurrentlyValid)
-						it.remove();
-				}
 			}
 		}
 
@@ -194,23 +196,27 @@ public class RuleSet {
 		List<ResultSet> results = new ArrayList<>();
 
 		for(Rule rule : filteredSet) {
-			if(rule instanceof LineRule) {
-				isCurrentlyValid = ((LineRule) rule).isValid(line, isCurrentlyValid);
-			} else {
-				if(!isCurrentlyValid) continue;
-				
-				if(rule instanceof GroupTag) {
-					((GroupTag) rule).processLine(line);
-				} else if(rule instanceof SearchMatch) {
-					for(Match match : SearchTree.getMatches(line)) {
-						ResultSet result = new ResultSet();
-						result.add("Match", match.tag);
+			if(rule instanceof SwitchRule) {
+				isSwitchedOn = ((SwitchRule) rule).isOn(line, isSwitchedOn);
+			} else if(isSwitchedOn) {
+				if(rule instanceof LineRule) {
+					isCurrentlyValid = ((LineRule) rule).isValid(line, isCurrentlyValid);
+				} else {
+					if(!isCurrentlyValid) continue;
 
-						if(((SearchMatch) rule).match(line, match, result)) {
-							for(GroupTag tag : groups)
-								tag.fillResultSet(result);
+					if(rule instanceof GroupTag) {
+						((GroupTag) rule).processLine(line);
+					} else if(rule instanceof SearchMatch) {
+						for(Match match : SearchTree.getMatches(line)) {
+							ResultSet result = new ResultSet();
+							result.add("Match", match.tag);
 
-							results.add(result);
+							if(((SearchMatch) rule).match(line, match, result)) {
+								for(GroupTag tag : groups)
+									tag.fillResultSet(result);
+
+								results.add(result);
+							}
 						}
 					}
 				}
