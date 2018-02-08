@@ -49,7 +49,7 @@
                               <Button fx:id="selectSearch" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#selectSearchList" text="Select Search List" />
                               <Separator prefWidth="200.0" />
                               <ComboBox fx:id="selectRuleSet" maxWidth="1.7976931348623157E308" prefWidth="150.0" promptText="Select Rule Set" />
-                              <CheckBox fx:id="caseSensitive" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Search term case insensitive" wrapText="true" />
+                              <CheckBox fx:id="caseSensitive" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Search term case sensitive" wrapText="true" />
                               <HBox alignment="BOTTOM_CENTER" fillHeight="false" spacing="5.0" VBox.vgrow="ALWAYS">
                                  <children>
                                     <Button fx:id="searchButton" maxHeight="-Infinity" maxWidth="1.7976931348623157E308" mnemonicParsing="false" prefHeight="40.0" prefWidth="40.0" text="Search" HBox.hgrow="ALWAYS" />
