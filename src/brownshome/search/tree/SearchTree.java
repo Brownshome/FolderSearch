@@ -17,18 +17,21 @@ public class SearchTree {
 		}
 	}
 	
-	public static SearchTree rootTree;
+	public static SearchTree caseSensitiveRootTree;
+	public static SearchTree caseInsensitiveRootTree;
 	
-	public static SearchTree createTree(List<String> readAllLines) {
-		return new SearchTree(readAllLines);
-	}
-	
-	public static List<Match> getMatches(String line) {
+	public static List<Match> getMatches(String line, boolean caseSensitive) {
+		SearchTree rootTree = caseSensitive ? caseSensitiveRootTree : caseInsensitiveRootTree;
+		
 		List<SearchTree> subTrees = new ArrayList<>();
 		List<Match> matches = new ArrayList<>();
 		
 		for(int ci = 0; ci < line.length(); ci++) {
 			int c = line.codePointAt(ci);
+			
+			if(!caseSensitive) {
+				c = Character.toLowerCase(c);
+			}
 			
 			//take every subtree and traverse one step lower
 			for(int i = 0; i < subTrees.size(); i++) {
@@ -49,8 +52,10 @@ public class SearchTree {
 			if(subTree != null) {
 				int index = -1;
 				for(int i = 0; i < subTrees.size(); i++) {
-					if(subTrees.get(i) == null)
+					if(subTrees.get(i) == null) {
 						index = i;
+						break;
+					}
 				}
 
 				//try to conserver space by reusing indices

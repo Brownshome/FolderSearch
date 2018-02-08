@@ -9,7 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
@@ -34,6 +36,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -76,6 +79,8 @@ public class GUIController {
 	@FXML Button selectSearch;
 	@FXML Button searchButton;
 	@FXML Button exportButton;
+	@FXML CheckBox caseSensitive;
+	@FXML Button removeButton;
 	
 	ObjectProperty<Path> tagList = new SimpleObjectProperty<>();
 	BooleanBinding isSeachButtonValid;
@@ -127,7 +132,7 @@ public class GUIController {
 		BooleanExpression tagListSelected = tagList.isNotNull();
 		
 		isSeachButtonValid = ruleSetSelected.and(listHasFilesInIt.and(tagListSelected));
-		
+		removeButton.disableProperty().bind(fileList.getSelectionModel().selectedItemProperty().isNull());
 
 		buttonIsCancel = currentlySearching.or(treeBeingMade);
 		StringExpression searchButtonText = Bindings.createStringBinding(
@@ -146,6 +151,19 @@ public class GUIController {
 		exportButton.disableProperty().bind(isSearchDone.not());
 		selectSearch.disableProperty().bind(currentlySearching);
 		selectRuleSet.disableProperty().bind(currentlySearching);
+		
+		caseSensitive.disableProperty().bind(currentlySearching.or(treeBeingMade).or(tagListSelected.not()));
+		caseSensitive.selectedProperty().addListener((obs, old, isCaseSensitive) -> {
+			if(isCaseSensitive) {
+				if(SearchTree.caseSensitiveRootTree == null) {
+					createTree();
+				}
+			} else {
+				if(SearchTree.caseInsensitiveRootTree == null) {
+					createTree();
+				}
+			}
+		});
 		
 		primaryStage.show();
 		
@@ -245,6 +263,13 @@ public class GUIController {
 		
 		tagList.setValue(p.toPath());
 	
+		SearchTree.caseInsensitiveRootTree = null;
+		SearchTree.caseSensitiveRootTree = null;
+		
+		createTree();
+	}
+
+	private void createTree() {
 		progressBar.setDisable(false);
 		progressBar.setProgress(-1);
 		
@@ -255,9 +280,20 @@ public class GUIController {
 		selectSearch.setText(tagList.get().toString());
 		treeBeingMade.set(true);
 		
+		boolean caseFlag = caseSensitive.isSelected();
 		treeCreationThread = new Thread(() -> {
 			try {
-				SearchTree tree = SearchTree.createTree(FileUtils.readAllLines(tagList.get()));
+				List<String> searchTerms = FileUtils.readAllLines(tagList.get());
+				
+				System.out.println("Started to create tree, case: " + caseFlag);
+				if(!caseFlag) {
+					for(ListIterator<String> it = searchTerms.listIterator(); it.hasNext(); ) {
+						String term = it.next();
+						it.set(term.toLowerCase());
+					}
+				}
+				
+				SearchTree tree = new SearchTree(searchTerms);
 				
 				Thread t = Thread.currentThread();
 				Platform.runLater(() -> finishedMakingTree(t, tree));
@@ -275,7 +311,14 @@ public class GUIController {
 			return; //we aborted, just die
 		}
 		
-		SearchTree.rootTree = tree;
+		boolean caseFlag = caseSensitive.isSelected();
+		System.out.println("Finished creating tree, case: " + caseFlag);
+		if(caseFlag) {
+			SearchTree.caseSensitiveRootTree = tree;
+		} else {
+			SearchTree.caseInsensitiveRootTree = tree;
+		}
+		
 		progressBar.setDisable(true);
 		progressBar.setProgress(0);
 		progressLabel.setText("Idle");
@@ -313,8 +356,10 @@ public class GUIController {
 		isSearchDone.set(false);
 		currentlySearching.set(true);
 		
+		boolean caseFlag = caseSensitive.isSelected();
+		
 		searchThread = new Thread(() -> {
-			List<ResultSet> results = ruleSet.searchPaths(paths);
+			List<ResultSet> results = ruleSet.searchPaths(paths, caseFlag);
 		
 			Thread t = Thread.currentThread();
 			Platform.runLater(() -> {

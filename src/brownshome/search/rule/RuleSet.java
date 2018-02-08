@@ -108,7 +108,7 @@ public class RuleSet {
 		}
 	}
 
-	public List<ResultSet> searchPaths(Collection<Path> items) {
+	public List<ResultSet> searchPaths(Collection<Path> items, boolean caseSensitive) {
 		List<ResultSet> results = new ArrayList<>();
 
 		List<Path> paths = new ArrayList<>();
@@ -146,7 +146,7 @@ public class RuleSet {
 				if(setFileName(file.getFileName().toString())) {
 					int lineNo = 1;
 					for(String line : FileUtils.readAllLines(file)) {
-						List<ResultSet> result = processLine(line);
+						List<ResultSet> result = processLine(line, caseSensitive);
 
 						int l = lineNo++;
 						result.forEach((ResultSet r) -> {
@@ -191,7 +191,7 @@ public class RuleSet {
 		return !filteredSet.isEmpty();
 	}
 
-	public List<ResultSet> processLine(String line) {
+	public List<ResultSet> processLine(String line, boolean caseSensitive) {
 		boolean isCurrentlyValid = true;
 		List<ResultSet> results = new ArrayList<>();
 
@@ -207,7 +207,7 @@ public class RuleSet {
 					if(rule instanceof GroupTag) {
 						((GroupTag) rule).processLine(line);
 					} else if(rule instanceof SearchMatch) {
-						for(Match match : SearchTree.getMatches(line)) {
+						for(Match match : SearchTree.getMatches(line, caseSensitive)) {
 							ResultSet result = new ResultSet();
 							result.add("Match", match.tag);
 
