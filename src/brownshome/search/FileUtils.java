@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,10 +14,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FileUtils {
-	//Be safe, here be garbage input
-	private static final CharsetDecoder defaultDecoder = StandardCharsets.UTF_8.newDecoder()
-			.onMalformedInput(CodingErrorAction.REPLACE)
-			.onUnmappableCharacter(CodingErrorAction.REPLACE);
+	//Be safe, here be garbage input, ISO_8859_1 is safe for any input
+	private static final CharsetDecoder defaultDecoder = StandardCharsets.ISO_8859_1.newDecoder();
 
 	/**
 	 * Reads the file into a list of strings, looking for byte order marks.
@@ -51,6 +50,10 @@ public class FileUtils {
 				} else {
 					return read(in);
 				}
+			}
+		} catch(MalformedInputException mie) {
+			try (InputStream in = Files.newInputStream(path)) {
+				return read(in);
 			}
 		}
 	}
