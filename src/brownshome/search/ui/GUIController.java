@@ -9,11 +9,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.stream.Stream;
 
+import brownshome.search.FileUtils;
+import brownshome.search.rule.Rule;
+import brownshome.search.rule.RuleSet;
+import brownshome.search.rule.RuleSet.ResultSet;
+import brownshome.search.rule.RuleType;
+import brownshome.search.tree.SearchTree;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -52,14 +57,10 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
-import brownshome.search.FileUtils;
-import brownshome.search.rule.Rule;
-import brownshome.search.rule.RuleSet;
-import brownshome.search.rule.RuleSet.ResultSet;
-import brownshome.search.rule.RuleType;
-import brownshome.search.tree.SearchTree;
 
 public class GUIController {
+	public static final String VERSION = "2.6.1";
+	
 	public static GUIController INSTANCE;
 	
 	final static Path RULE_PATH = Paths.get("rules");
@@ -104,7 +105,7 @@ public class GUIController {
 			exception.printStackTrace();
 		});
 		
-		primaryStage.setTitle("Search Tool 2.6");
+		primaryStage.setTitle("Search Tool " + VERSION);
 		
 		FXMLLoader loader = new FXMLLoader(GUIController.class.getResource("GUI.fxml"));
 		loader.setController(this);
@@ -209,7 +210,7 @@ public class GUIController {
 	@FXML void displayHelp() {
 		ButtonType wikiButton = new ButtonType("Visit Wiki");
 		Alert alert = new Alert(AlertType.INFORMATION, "A folder search tool made by James Brown.\nFor information on usage please visit the wiki.", ButtonType.CLOSE, wikiButton);
-		alert.setTitle("About Folder Search 2.6");
+		alert.setTitle("About Folder Search " + VERSION);
 		alert.setHeaderText(null);
 		alert.showAndWait();
 		
@@ -416,7 +417,7 @@ public class GUIController {
 		List<String> catagories = selectRuleSet.getSelectionModel().getSelectedItem().catagories;
 		String header = "";	
 		for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
-			header += "\"" + catagories.get(Integer.parseInt(c.getId())) + "\",";
+			header += "\"" + catagories.get(Integer.parseInt(c.getId())).replace("\"", "\"\"") + "\",";
 		}
 		header = header.substring(0, header.length() - 1);
 		
@@ -427,7 +428,7 @@ public class GUIController {
 				String s = "";
 			
 				for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
-					s += "\"" + r.data[Integer.parseInt(c.getId())] + "\",";
+					s += "\"" + r.data[Integer.parseInt(c.getId())].replace("\"", "\"\"") + "\",";
 				}
 			
 				return s.substring(0, s.length() - 1);
