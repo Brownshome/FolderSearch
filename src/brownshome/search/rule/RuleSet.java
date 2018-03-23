@@ -117,7 +117,7 @@ public class RuleSet {
 		for(Path folder : items) {
 			try {
 				Files.walk(folder).forEach(file -> {
-					if(!Files.isReadable(file) || !Files.isRegularFile(file))
+					if(!Files.isRegularFile(file))
 						return;
 
 					paths.add(file);
