@@ -59,7 +59,7 @@ import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
 public class GUIController {
-	public static final String VERSION = "2.6.1";
+	public static final String VERSION = "2.6.2";
 	
 	public static GUIController INSTANCE;
 	
