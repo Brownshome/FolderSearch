@@ -1,0 +1,34 @@
+plugins {
+	id 'application'
+}
+
+mainClassName = 'brownshome.search.SearchTool'
+version = '2.6.2'
+
+sourceSets {
+	main {
+		java {
+			srcDirs = ['src']
+		}
+		resources {
+			srcDirs = ['src']
+			exclude '**/*.java'
+		}
+	}
+}
+
+jar {
+	baseName = "Search"
+
+	manifest {
+		attributes 'Main-Class': "$mainClassName"
+	}
+}
+
+task dist(type: Zip) {
+	baseName = 'Search'
+	from jar.outputs
+	from('rules') {
+		into 'rules'
+	}
+}
