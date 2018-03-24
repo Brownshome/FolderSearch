@@ -1,13 +1,20 @@
 package brownshome.search.rule;
 
 import java.io.IOException;
+import java.lang.Character.UnicodeScript;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,8 +52,6 @@ public class RuleSet {
 	}
 
 	List<Rule> rules = new ArrayList<>();
-	List<Rule> filteredSet;
-	boolean isSwitchedOn = true;
 
 	List<GroupTag> groups = new ArrayList<>();
 	String name;
@@ -107,10 +112,8 @@ public class RuleSet {
 			}
 		}
 	}
-
+	
 	public List<ResultSet> searchPaths(Collection<Path> items, boolean caseSensitive) {
-		List<ResultSet> results = new ArrayList<>();
-
 		List<Path> paths = new ArrayList<>();
 		long[] size = new long[] {0};
 
@@ -132,75 +135,93 @@ public class RuleSet {
 			}
 		}
 
-		long done = 0;
-		for(Path file : paths) {
-			try {
-				if(Thread.interrupted())
-					return null;
-				
-				done += Files.size(file);
-				
-				double percent = ((double) done) / size[0];
-				Platform.runLater(() -> GUIController.INSTANCE.setProgress(percent));
-				
-				if(setFileName(file.getFileName().toString())) {
-					System.out.println("Starting " + file);
-					
-					int lineNo = 1;
-					for(String line : FileUtils.readAllLines(file)) {
-						List<ResultSet> result = processLine(line, caseSensitive);
+		AtomicLong done = new AtomicLong();
+		List<ResultSet> results = Collections.synchronizedList(new ArrayList<>());
+		ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 3);
+		
+		for(Path path : paths) {
+			final Path file = path;
+			executor.execute(() -> {
+				try {
+					List<Rule> listOfRules = setFileName(file.getFileName().toString());
 
-						int l = lineNo++;
-						result.forEach((ResultSet r) -> {
-							r.add("File", file.toString());
-							r.add("Line No", String.valueOf(l));
-						});
-
-						results.addAll(result);
+					boolean[] isSwitchedOn = { true };
+					for(Rule rule : listOfRules) {
+						if(rule instanceof StartState) {
+							isSwitchedOn[0] = ((StartState) rule).state;
+						}
 					}
+
+					if(!listOfRules.isEmpty()) {
+						System.out.println("Starting " + file);
+
+						int lineNo = 1;
+						for(String line : FileUtils.readAllLines(file)) {
+							if(Thread.interrupted()) {
+								return;
+							}
+
+							List<ResultSet> result = processLine(listOfRules, line, caseSensitive, isSwitchedOn);
+
+							int l = lineNo++;
+							result.forEach((ResultSet r) -> {
+								r.add("File", file.toString());
+								r.add("Line No", String.valueOf(l));
+							});
+
+							results.addAll(result);
+						}
+					}
+
+					double percent = ((double) done.addAndGet(Files.size(file))) / size[0];
+					Platform.runLater(() -> GUIController.INSTANCE.setProgress(percent));
+				} catch(IOException e) {
+					System.out.println("Malformed input file " + file.toString() + ": " + e.toString());
 				}
-			} catch(IOException e) {
-				System.out.println("Malformed input file " + file.toString() + ": " + e.toString());
-			}
+			});
+		}
+		
+		executor.shutdown();
+		try {
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		} catch (InterruptedException e) {
+			executor.shutdownNow();
+			return null;
 		}
 
 		return results;
 	}
 
-	/** Returns true if the file needs to be processed, this also sets up the
-	 * rule list */
-	public boolean setFileName(String fileName) {
-		filteredSet = new ArrayList<>(rules);
+	/** Returns true if the file needs to be processed, this also sets up the rule list */
+	public List<Rule> setFileName(String fileName) {
+		List<Rule> filteredSet = new ArrayList<>(rules);
 
 		boolean isCurrentlyValid = true;
 		for(Iterator<Rule> it = filteredSet.iterator(); it.hasNext();) {
 			Rule rule = it.next();
 
-			if(rule instanceof StartState) {
-				isSwitchedOn = ((StartState) rule).state;
-				it.remove();
-			} else if(rule instanceof GroupTag) {
+			if(rule instanceof GroupTag) {
 				((GroupTag) rule).reset();
-			} else if(rule instanceof FileRule) {
+			}
+			
+			if(rule instanceof FileRule) {
 				isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
 				it.remove();
-			} else {
-				if(!isCurrentlyValid)
-					it.remove();
-			}
+			} else if(!isCurrentlyValid)
+				it.remove();
 		}
 
-		return !filteredSet.isEmpty();
+		return filteredSet;
 	}
 
-	public List<ResultSet> processLine(String line, boolean caseSensitive) {
+	public List<ResultSet> processLine(List<Rule> filteredSet, String line, boolean caseSensitive, boolean[] isSwitchedOn) {
 		boolean isCurrentlyValid = true;
 		List<ResultSet> results = new ArrayList<>();
 
 		for(Rule rule : filteredSet) {
 			if(rule instanceof SwitchRule) {
-				isSwitchedOn = ((SwitchRule) rule).isOn(line, isSwitchedOn);
-			} else if(isSwitchedOn) {
+				isSwitchedOn[0] = ((SwitchRule) rule).isOn(line, isSwitchedOn[0]);
+			} else if(isSwitchedOn[0]) {
 				if(rule instanceof LineRule) {
 					isCurrentlyValid = ((LineRule) rule).isValid(line, isCurrentlyValid);
 				} else {
