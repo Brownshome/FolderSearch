@@ -1,7 +1,7 @@
 package brownshome.search.rule;
 
 import java.util.List;
-import java.util.regex.Pattern;
+import com.google.re2j.Pattern;
 
 public class IncludeFile implements FileRule {
 	Pattern fileRegex;

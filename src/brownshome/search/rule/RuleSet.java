@@ -144,6 +144,8 @@ public class RuleSet {
 				Platform.runLater(() -> GUIController.INSTANCE.setProgress(percent));
 				
 				if(setFileName(file.getFileName().toString())) {
+					System.out.println("Starting " + file);
+					
 					int lineNo = 1;
 					for(String line : FileUtils.readAllLines(file)) {
 						List<ResultSet> result = processLine(line, caseSensitive);

@@ -5,8 +5,8 @@ INCLUDE_FILE
 \.EB
 
 GROUP_TAG
-^&N +(?<tag>\w*)
-tag
+^&N +(\w*)
+tag=1
 
 EXCLUDE_LINE
 .
@@ -18,8 +18,8 @@ EXCLUDE_LINE
 ^\{
 
 SEARCH_MATCH
-(?<line>^.*?(?<parameter>[\w()-.]+) += *%search%(\W|$).*$)
-line,parameter
+^.*?([\w()-.]+) += *%search%(\W|$).*$
+line=0,parameter=1
 
 EXCLUDE_FILE
 .
@@ -31,5 +31,5 @@ EXCLUDE_LINE
 ^ *--
 
 SEARCH_MATCH
-(?<line>^.*?(\W|^)%search%(\W|$).*$)
-line
+^.*?(\W|^)%search%(\W|$).*$
+line=0

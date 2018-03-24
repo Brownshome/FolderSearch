@@ -4,23 +4,33 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 import brownshome.search.rule.RuleSet.ResultSet;
 
 public class GroupTag implements Rule, DataRule {
-	List<String> groupCategories;
+	List<NamedGroup> namedGroups;
 	Pattern regex;
 	
 	List<String> currentGroup;
 	
 	public GroupTag(List<String> lines) {
 		regex = Pattern.compile(lines.get(0));
-		groupCategories = Arrays.asList(lines.get(1).split(","));
 		
-		if(lines.get(1).equals(","))
-			groupCategories = Collections.emptyList();
+		if(lines.get(1).equals(",")) {
+			namedGroups = Collections.emptyList();
+		} else {
+			String[] rawNamedGroups = lines.get(1).split(",");
+			NamedGroup[] namedGroupsArray = new NamedGroup[rawNamedGroups.length];
+		
+			for(int i = 0; i < rawNamedGroups.length; i++) {
+				namedGroupsArray[i] = new NamedGroup(rawNamedGroups[i]);
+				namedGroups = Arrays.asList(namedGroupsArray);
+			}
+		}
 	}
 
 	@Override
@@ -30,7 +40,7 @@ public class GroupTag implements Rule, DataRule {
 
 	@Override
 	public List<String> getDataHeadings() {
-		return groupCategories;
+		return namedGroups.stream().map(g -> g.name).collect(Collectors.toList());
 	}
 
 	public void reset() {
@@ -41,24 +51,24 @@ public class GroupTag implements Rule, DataRule {
 		Matcher matcher = regex.matcher(line);
 		if(matcher.find()) {
 			currentGroup = new ArrayList<>();
-			for(int i = 0; i < groupCategories.size(); i++) {
-				currentGroup.add(matcher.group(groupCategories.get(i)));
+			for(NamedGroup category : namedGroups) {
+				currentGroup.add(matcher.group(category.index));
 			}
 		}
 	}
 
 	public void fillResultSet(ResultSet result) {
 		if(currentGroup != null) {
-			for(int i = 0; i < groupCategories.size(); i++) {
+			for(int i = 0; i < namedGroups.size(); i++) {
 				if(currentGroup.get(i) != null) {
-					result.add(groupCategories.get(i), currentGroup.get(i));
+					result.add(namedGroups.get(i).name, currentGroup.get(i));
 				} else {
-					result.add(groupCategories.get(i), "No Data");
+					result.add(namedGroups.get(i).name, "No Data");
 				}
 			}
 		} else {
-			for(String s : groupCategories) {
-				result.add(s, "no Data");
+			for(NamedGroup s : namedGroups) {
+				result.add(s.name, "no Data");
 			}
 		}
 	}

@@ -3,7 +3,15 @@ plugins {
 }
 
 mainClassName = 'brownshome.search.SearchTool'
-version = '2.6.2'
+version = '2.6.2-re2j'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.re2j:re2j:1.1'
+}
 
 sourceSets {
 	main {
