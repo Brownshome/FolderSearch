@@ -1,16 +1,12 @@
 package brownshome.search.rule;
 
 import java.io.IOException;
-import java.lang.Character.UnicodeScript;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,14 +14,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import brownshome.search.FileUtils;
+import brownshome.search.SearchState;
+import brownshome.search.ui.GUIController;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.control.TableColumn;
-import brownshome.search.FileUtils;
-import brownshome.search.tree.SearchTree;
-import brownshome.search.tree.SearchTree.Match;
-import brownshome.search.ui.GUIController;
 
 // FILE - always on
 // LINE - only on if file is active
@@ -33,23 +28,6 @@ import brownshome.search.ui.GUIController;
 
 public class RuleSet {
 	public List<String> catagories;
-
-	public class ResultSet {
-		public String[] data;
-
-		public ResultSet() {
-			data = new String[catagories.size()];
-			Arrays.fill(data, "No Data");
-		}
-
-		public void add(String paramater, String value) {
-			data[catagories.indexOf(paramater)] = value;
-		}
-		
-		String getData(int i) {
-			return data[i];
-		}
-	}
 
 	List<Rule> rules = new ArrayList<>();
 
@@ -71,9 +49,7 @@ public class RuleSet {
 			throw new RuntimeException("Unable to read rule file " + path, e);
 		}
 
-
 		catagories = new ArrayList<>();
-
 		catagories.add("File");
 		catagories.add("Line No");
 		catagories.add("Match");
@@ -137,46 +113,21 @@ public class RuleSet {
 
 		AtomicLong done = new AtomicLong();
 		List<ResultSet> results = Collections.synchronizedList(new ArrayList<>());
-		ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 3);
+		ExecutorService executor = Executors.newFixedThreadPool(Math.max(10, Runtime.getRuntime().availableProcessors() * 3));
 		
 		for(Path path : paths) {
-			final Path file = path;
 			executor.execute(() -> {
 				try {
-					List<Rule> listOfRules = setFileName(file.getFileName().toString());
-
-					boolean[] isSwitchedOn = { true };
-					for(Rule rule : listOfRules) {
-						if(rule instanceof StartState) {
-							isSwitchedOn[0] = ((StartState) rule).state;
-						}
+					SearchState state = new SearchState(rules, catagories, path, caseSensitive);
+					
+					if(state.shouldSearch()) {
+						results.addAll(state.processFile(FileUtils.readAllLines(path)));
 					}
 
-					if(!listOfRules.isEmpty()) {
-						System.out.println("Starting " + file);
-
-						int lineNo = 1;
-						for(String line : FileUtils.readAllLines(file)) {
-							if(Thread.interrupted()) {
-								return;
-							}
-
-							List<ResultSet> result = processLine(listOfRules, line, caseSensitive, isSwitchedOn);
-
-							int l = lineNo++;
-							result.forEach((ResultSet r) -> {
-								r.add("File", file.toString());
-								r.add("Line No", String.valueOf(l));
-							});
-
-							results.addAll(result);
-						}
-					}
-
-					double percent = ((double) done.addAndGet(Files.size(file))) / size[0];
+					double percent = ((double) done.addAndGet(Files.size(path))) / size[0];
 					Platform.runLater(() -> GUIController.INSTANCE.setProgress(percent));
 				} catch(IOException e) {
-					System.out.println("Malformed input file " + file.toString() + ": " + e.toString());
+					System.out.println("Malformed input file " + path.toString() + ": " + e.toString());
 				}
 			});
 		}
@@ -192,73 +143,16 @@ public class RuleSet {
 		return results;
 	}
 
-	/** Returns true if the file needs to be processed, this also sets up the rule list */
-	public List<Rule> setFileName(String fileName) {
-		List<Rule> filteredSet = new ArrayList<>(rules);
-
-		boolean isCurrentlyValid = true;
-		for(Iterator<Rule> it = filteredSet.iterator(); it.hasNext();) {
-			Rule rule = it.next();
-
-			if(rule instanceof GroupTag) {
-				((GroupTag) rule).reset();
-			}
-			
-			if(rule instanceof FileRule) {
-				isCurrentlyValid = ((FileRule) rule).isValid(fileName, isCurrentlyValid);
-				it.remove();
-			} else if(!isCurrentlyValid)
-				it.remove();
-		}
-
-		return filteredSet;
-	}
-
-	public List<ResultSet> processLine(List<Rule> filteredSet, String line, boolean caseSensitive, boolean[] isSwitchedOn) {
-		boolean isCurrentlyValid = true;
-		List<ResultSet> results = new ArrayList<>();
-
-		for(Rule rule : filteredSet) {
-			if(rule instanceof SwitchRule) {
-				isSwitchedOn[0] = ((SwitchRule) rule).isOn(line, isSwitchedOn[0]);
-			} else if(isSwitchedOn[0]) {
-				if(rule instanceof LineRule) {
-					isCurrentlyValid = ((LineRule) rule).isValid(line, isCurrentlyValid);
-				} else {
-					if(!isCurrentlyValid) continue;
-
-					if(rule instanceof GroupTag) {
-						((GroupTag) rule).processLine(line);
-					} else if(rule instanceof SearchMatch) {
-						for(Match match : SearchTree.getMatches(line, caseSensitive)) {
-							ResultSet result = new ResultSet();
-							result.add("Match", match.tag);
-
-							if(((SearchMatch) rule).match(line, match, result)) {
-								for(GroupTag tag : groups)
-									tag.fillResultSet(result);
-
-								results.add(result);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return results;
-	}
-
 	public List<TableColumn<ResultSet, ?>> getColumns() {
 		return IntStream.range(0, catagories.size()).mapToObj(index -> { 
 			if(catagories.get(index).equals("Line No")) {
 				TableColumn<ResultSet, Integer> column = new TableColumn<>(catagories.get(index));
-				column.setCellValueFactory(cellData -> new SimpleObjectProperty<>(Integer.parseInt(cellData.getValue().data[index])));
+				column.setCellValueFactory(cellData -> new SimpleObjectProperty<>(Integer.parseInt(cellData.getValue().getData(index))));
 				column.setId(String.valueOf(index));
 				return column;
 			} else {
 				TableColumn<ResultSet, String> column = new TableColumn<>(catagories.get(index));
-				column.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().data[index]));
+				column.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getData(index)));
 				column.setId(String.valueOf(index));
 				return column;
 			}

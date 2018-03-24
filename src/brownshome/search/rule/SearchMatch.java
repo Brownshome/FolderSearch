@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
-import brownshome.search.rule.RuleSet.ResultSet;
 import brownshome.search.tree.SearchTree.Match;
 
 public class SearchMatch implements Rule, DataRule {

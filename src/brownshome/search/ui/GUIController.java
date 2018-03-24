@@ -14,9 +14,9 @@ import java.util.ListIterator;
 import java.util.stream.Stream;
 
 import brownshome.search.FileUtils;
+import brownshome.search.rule.ResultSet;
 import brownshome.search.rule.Rule;
 import brownshome.search.rule.RuleSet;
-import brownshome.search.rule.RuleSet.ResultSet;
 import brownshome.search.rule.RuleType;
 import brownshome.search.tree.SearchTree;
 import javafx.application.Platform;
@@ -428,7 +428,7 @@ public class GUIController {
 				String s = "";
 			
 				for(TableColumn<ResultSet, ?> c : resultTable.getColumns()) {
-					s += "\"" + r.data[Integer.parseInt(c.getId())].replace("\"", "\"\"") + "\",";
+					s += "\"" + r.getData(Integer.parseInt(c.getId())).replace("\"", "\"\"") + "\",";
 				}
 			
 				return s.substring(0, s.length() - 1);
